@@ -1,0 +1,2 @@
+-module(vector).
+-export([point/2,plane/2]).
