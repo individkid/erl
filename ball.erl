@@ -19,104 +19,104 @@ find(Ball,Pat) ->
             Right = erlang:element(sub,Id),
             (Left == wild) or (Left == Right) end,
         lists:all(Fun,Seq) end,
-    myset:filter(Idents,Fun).
+    set:filter(Idents,Fun).
 class(Ball,Ids) ->
     {_,_,PerId,_,_} = Ball,
-    myset:image(PerId,Ids).
+    set:image(PerId,Ids).
 ident(Ball,Eqs) ->
     {_,_,_,PerEq,_} = Ball,
-    Fam = myset:image(PerEq,Eqs),
-    myset:family_union(Fam).
+    Fam = set:image(PerEq,Eqs),
+    set:union_f(Fam).
 get(Ball,Class) ->
     {_,Equivs,_,PerEq,_} = Ball,
-    Ids = mymap:get(PerEq,Class),
+    Ids = set:get(PerEq,Class),
     Fun = fun(Eq) ->
-        Set = mymap:get(PerEq,Eq),
+        Set = set:get(PerEq,Eq),
         Fun = fun(L,R) ->
             PreL = lists:droplast(L),
             PreR = lists:droplast(R),
             (L == R) or (PreL == R) or (L == PreR) end,
-        myset:foil_any(Ids,Set,Fun) end,
-    myset:filter(Equivs,Fun).
+        set:foil_any(Ids,Set,Fun) end,
+    set:filter(Equivs,Fun).
 put(Ball,Ident) ->
     {Idents,Equivs,PerId,PerEq,Pool} = Ball,
-    Equiv = myset:length(Equivs)+Pool,
-    NewIds = myset:insert(Idents,Ident),
-    NewEqs = myset:insert(Equivs,Equiv),
-    NewPId = mymap:insert(PerId,Ident,Equiv),
-    Ids = myset:single(Ident),
-    NewPEq = myset:insert(PerEq,Equiv,Ids),
+    Equiv = set:length(Equivs)+Pool,
+    NewIds = set:insert(Idents,Ident),
+    NewEqs = set:insert(Equivs,Equiv),
+    NewPId = set:insert(PerId,Ident,Equiv),
+    Ids = set:single(Ident),
+    NewPEq = set:insert(PerEq,Equiv,Ids),
     {NewIds,NewEqs,NewPId,NewPEq,Pool}.
 put(Ball,Ident,Other) ->
     {Idents,Equivs,PerId,PerEq,Pool} = Ball,
-    Equiv = mymap:get(PerId,Other),
-    NewIds = myset:insert(Idents,Ident),
-    NewPId = mymap:insert(PerId,Ident,Equiv),
-    Ids = mymap:get(PerEq,Equiv),
-    Set = myset:insert(Ids,Ident),
-    NewPEq = mymap:replace(PerEq,Equiv,Set),
+    Equiv = set:get(PerId,Other),
+    NewIds = set:insert(Idents,Ident),
+    NewPId = set:insert(PerId,Ident,Equiv),
+    Ids = set:get(PerEq,Equiv),
+    Set = set:insert(Ids,Ident),
+    NewPEq = set:replace(PerEq,Equiv,Set),
     {NewIds,Equivs,NewPId,NewPEq,Pool}.
 same(Ball,Ident,Other) ->
     {Idents,Equivs,PerId,PerEq,Pool} = Ball,
-    Eq0 = mymap:get(PerId,Ident),
-    Eq1 = mymap:get(PerId,Other),
+    Eq0 = set:get(PerId,Ident),
+    Eq1 = set:get(PerId,Other),
     Res = fun(false) ->
-        Ids = mymap:get(PerEq,Eq0),
-        Oth = mymap:get(PerEq,Eq1),
-        Set = myset:union(Ids,Oth),
-        New = mymap:replace(PerEq,Eq0,Set),
-        NewPEq = mymap:remove(New,Eq1),
-        NewEqs = myset:remove(Equivs,Eq1),
+        Ids = set:get(PerEq,Eq0),
+        Oth = set:get(PerEq,Eq1),
+        Set = set:union(Ids,Oth),
+        New = set:replace(PerEq,Eq0,Set),
+        NewPEq = set:remove(New,Eq1),
+        NewEqs = set:remove(Equivs,Eq1),
         Fun = fun(Id,Eq) ->
             Res = fun(true) ->
                 Eq0; (false) ->
-                Eq end (myset:member(Oth,Id)),
+                Eq end (set:member(Oth,Id)),
             Res end,
-        NewPId = mymap:remap(PerId,Fun),
+        NewPId = set:remap(PerId,Fun),
         NewPool = Pool+1,
         {Idents,NewEqs,NewPId,NewPEq,NewPool}; (true) ->
         Ball end (Eq0 == Eq1),
     Res.
 clean(Idents,PerId,PerEq) ->
-    Sets = myset:domain(PerEq),
-    Count = mymap:count(Sets),
-    NewEqs = myset:range(Count),
+    Sets = set:domain(PerEq),
+    Count = set:count(Sets),
+    NewEqs = set:range(Count),
     Fun = fun(Id) ->
-        Eq = mymap:get(PerId,Id),
-        Ids = mymap:get(PerEq,Eq),
-        mymap:get(Count,Ids) end,
-    NewPId = mymap:remap(Idents,Fun)
-    NewPEq = mymap:inverse(PerEq),
-    NewPool = myset:empty(),
+        Eq = set:get(PerId,Id),
+        Ids = set:get(PerEq,Eq),
+        set:get(Count,Ids) end,
+    NewPId = set:remap(Idents,Fun)
+    NewPEq = set:inverse(PerEq),
+    NewPool = set:empty(),
     {Idents,NewEqs,NewPId,NewPEq,NewPool}.
 sub(Ball,Ids) ->
     {Idents,Equivs,PerId,PerEq,_} = Ball,
-    NewIds = myset:intersect(Idents,Ids),
+    NewIds = set:intersect(Idents,Ids),
     PIdFun = fun(Id,Eq) ->
-        myset:member(Ids,Id) end,
-    NewPId = mymap:filter(PerId,PIdFun),
+        set:member(Ids,Id) end,
+    NewPId = set:filter(PerId,PIdFun),
     PEqFun = fun(Eq,Set) ->
-        myset:intersect(Set,Ids) end,
-    NewPEq = mymap:remap(PerEq,PEqFun),
+        set:intersect(Set,Ids) end,
+    NewPEq = set:remap(PerEq,PEqFun),
     clean(NewIds,NewPId,NewPEq).
 sup(Ball,Other) ->
     {Idents0,Equivs0,PerId0,PerEq0,Pool0} = Ball,
     {Idents1,Equivs1,PerId1,PerEq1,_} = Ball,
-    NewIds = myset:union(Idents0,Idents1),
-    Count = mymap:count(Equivs1),
-    Size = myset:length(Equivs0)+Pool0,
+    NewIds = set:union(Idents0,Idents1),
+    Count = set:count(Equivs1),
+    Size = set:length(Equivs0)+Pool0,
     Fun = fun(Eq) ->
-        mymap:get(Count,Eq)+Size end,
-    NewPId1 = mymap:remap(PerId1,Fun),
+        set:get(Count,Eq)+Size end,
+    NewPId1 = set:remap(PerId1,Fun),
     PEqFun = fun(Eq,Ids) ->
         {Fun(Eq),Ids} end,
-    NewPEq1 = mymap:map(PerEq1,PEqFun),
-    NewPId = mymap:union(PerId0,NewPId1),
-    NewPEq = mymap:union(PerEq0,NewPEq1),
+    NewPEq1 = set:map(PerEq1,PEqFun),
+    NewPId = set:union(PerId0,NewPId1),
+    NewPEq = set:union(PerEq0,NewPEq1),
     clean(NewIds,NewPId,NewPEq).
 empty() ->
-    Idents = myset:empty(),
-    Equivs = myset:empty(),
-    PerId = mymap:empty(),
-    PerEq = mymap:empty(),
+    Idents = set:empty(),
+    Equivs = set:empty(),
+    PerId = set:empty(),
+    PerEq = set:empty(),
     {Idents,Equivs,PerId,PerEq,0}.
