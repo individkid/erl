@@ -62,10 +62,8 @@ extract_r([H|T],Keep,Phase,Duty,Stride,Length,Period,Duration,Size,Acc,Arg,Offse
     extract_r(T,Keep,Phase,Duty,Stride,Length,Period,Duration,Size,Acc,Arg,Offset+1,Done,Count).
 helper(List,Given,Desired,Default) ->
     Extra = lists:map(Default,lists:seq(0,erlang:length(Given)-erlang:length(List))),
-    {tree,Map} = set:tree(set:sortk(lambda:zip(Given,List++Extra))),
+    {tree,Map} = set:tree(set:sort(lambda:zip(Given,List++Extra))),
     lists:map(fun(Index) -> set:get({tree,Map},Index) end,Desired).
-helper(Rows,Given,Desired) ->
-    helper(Rows,Given,Desired,fun(Index) -> versor(Index,Params+1) end).
 multiply(Vec0,Vec1,1,Y,1) -> %% 1*y times y*1 is dot product
     Fun = fun({Elem0,Elem1},Acc) ->
         Elem0*Elem1+Acc end,
@@ -81,13 +79,13 @@ multiply(Mat0,Mat1,X,Y,Z) ->
 solve(Matrix,Augment,Indices,X,Y) ->
     [Row] = rows(Matrix,0,Y,0,Y,0,1),
     [Head|Tail] = Augment,
-    Max = fun({Ind,Val},{_,Acc}) when Val > 0.0 andalso Acc > 0.0 andalso Val > Acc -> {Ind,Val};
-    ({Ind,Val},{_,Acc}) when Val > 0.0 andalso Acc < 0.0 andalso Val > -Acc -> {Ind,Val};
-    ({Ind,Val},{_,Acc}) when Val < 0.0 andalso Acc > 0.0 andalso -Val > Acc -> {Ind,Val};
-    ({Ind,Val},{_,Acc}) when Val < 0.0 andalso Acc < 0.0 andalso -Val > -Acc -> {Ind,Val};
+    Max = fun({Ind,Val},{_,Acc}) when Val > 0.0 and Acc > 0.0 and Val > Acc -> {Ind,Val};
+    ({Ind,Val},{_,Acc}) when Val > 0.0 and Acc < 0.0 and Val > -Acc -> {Ind,Val};
+    ({Ind,Val},{_,Acc}) when Val < 0.0 and Acc > 0.0 and -Val > Acc -> {Ind,Val};
+    ({Ind,Val},{_,Acc}) when Val < 0.0 and Acc < 0.0 and -Val > -Acc -> {Ind,Val};
     ({_,Val},{Ind,Acc}) -> {Ind,Acc} end,
     {Swap,_} = lists:fold(Max,lambda:zip(lists:seq(0,Y-1),Row),{Y,0.0}),
-    {Coeffs,Permute,Params} = fun() when Swap == Y andalso Head \= 0.0 ->
+    {Coeffs,Permute,Params} = fun() when Swap == Y and Head \= 0.0 ->
         throw([]);
     () when Swap == Y ->
         [After] = extract(Matrix,Y,(X-1)*Y,0,(X-1)*Y,0,1),
@@ -157,35 +155,35 @@ intersect(Square,Indices,Bases) ->
     % 0 0 1 0 | 1 0 0 | z | 3 | z =  p
     %
     Desired = lists:seq(Area-Length,Area-1),
-    {helper(Rows,Permute,Desired),Params}.
+    {helper(Rows,Permute,Desired,fun(Index) -> versor(Index,Params+1) end),Params}.
 intersect_r([Hs|Ts],[Hi|Ti],[Hb|Tb],Row,Column,Saved,Length,Area,Crown,Acc) when
-    Row < Area andalso Column < Crown andalso
-    (Column div (Length - 1)) == (Row div Length) andalso
+    Row < Area and Column < Crown and
+    (Column div (Length - 1)) == (Row div Length) and
     Hi == (Row rem Length) ->
     intersect_r(Ts,[Hi|Ti],Tb,Row,Column+1,Saved,Length,Area,Crown,[(Hb-Saved+Hs)|Acc]);
 intersect_r(S,[Hi|Ti],[Hb|Tb],Row,Column,Saved,Length,Area,Crown,Acc) when
-    Row < Area andalso Column < Crown andalso
-    (Column div (Length - 1)) == (Row div Length) andalso
+    Row < Area and Column < Crown and
+    (Column div (Length - 1)) == (Row div Length) and
     Hi /= (Row rem Length) ->
     intersect_r(S,[Hi|Ti],Tb,Row,Column+1,Saved,Length,Area,Crown,[(Hb-Saved)|Acc]);
 intersect_r(S,I,B,Row,Column,Saved,Length,Area,Crown,Acc) when
-    Row < Area andalso Column < Crown andalso
+    Row < Area and Column < Crown and
     (Column div (Length - 1)) /= (Row div Length) ->
     intersect_r(S,I,B,Row,Column+1,Saved,Length,Area,Crown,[0.0|Acc]);
 intersect_r(S,I,B,Row,Column,Saved,Length,Area,Crown,Acc) when
-    Row < Area andalso Column >= Crown andalso Column < Area andalso
+    Row < Area and Column >= Crown and Column < Area and
     (Column rem Length) == (Row rem Length) ->
     intersect_r(S,I,B,Row,Column+1,Saved,Length,Area,Crown,[1.0|Acc]);
 intersect_r(S,I,B,Row,Column,Saved,Length,Area,Crown,Acc) when
-    Row < Area andalso Column >= Crown andalso Column < Area andalso
+    Row < Area and Column >= Crown and Column < Area and
     (Column rem Length) /= (Row rem Length) ->
     intersect_r(S,I,B,Row,Column+1,Saved,Length,Area,Crown,[0.0|Acc]);
 intersect_r(S,I,[Hb|Tb],Row,Column,Saved,Length,Area,Crown,Acc) when
-    Row < Area andalso Column == Area andalso
+    Row < Area and Column == Area and
     ((Row + 1) rem Length) /= 0 ->
     intersect_r(S,I,Tb,Row+1,0,Hb,Length,Area,Crown,[Saved|Acc]);
 intersect_r(S,[_|Ti],[Hb|Tb],Row,Column,Saved,Length,Area,Crown,Acc) when
-    Row < Area andalso Column == Area andalso
+    Row < Area and Column == Area and
     ((Row + 1) rem Length) == 0 ->
     intersect_r(S,Ti,Tb,Row+1,0,Hb,Length,Area,Crown,[Saved|Acc]);
 intersect_r(_,_,_,_,_,_,_,_,_,Acc) when

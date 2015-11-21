@@ -1,23 +1,26 @@
 -module(space).
-%% accessor functions
 -export([convert/2,convert/3,convert/4,convert/5,convert/6]).
 -export([select/2,table/2]).
 -export([side/3,side/4]).
 -export([dual/3,dual/4]).
 -export([half/3,half/4]).
 -export([duali/3,halfi/3]).
--export([boundaries/1,regions/1,sides/1]).
 -export([length/1,linear/1,linear/2,dimension/2]).
--export([polyant/3,neighbor/5,neighbor/5]).
--export([pencil/5,corner/6]).
+-export([neighbor/5]).
+-export([polyant/3,pencil/5,polycil/6]).
 -export([attached/2,attached/5,shell/2,shell/5]).
 -export([attachedi/2,shelli/2]).
--export([connected/5,connected/6]).
--export([sign/7,axis/7,facet/7]).
-%% functions for spaces in same universe
+-export([axis/7,facet/7,ordering/4]).
+-export([connected/5,connected/6,canonical/4]).
 -export([subspace/4,section/6,subsection/9]).
--export([supersection/8,supersecton/13]).
--export([canonical/4,orderings/5,superspace/6]).
+-export([supersection/8,supersecton/13,superspace/6]).
+%%
+%% side_f dual_ff half_ff duali_ff halfi_ff attached_ff shell_ff attachedi_ff shelli_ff
+%% boundaries_f regions_f vertices_f sides_f length linear dimension
+%%
+%% S_sf S_dff S_hff S_diff S_hiff S_aff S_bff S_aiff S_biff
+%% S_bf S_rf S_qf S_pf S_m S_l S_n
+%%
 convert([dual_tf,regions_f,sides_f],{dual_ff,S_dff}) ->
     [{dual_ff,_},{dual_tf,S_dtf},{regions_f,S_rf},{sides_f,S_pf}] = convert(
         [dual_tf,regions_f,sides_f],{dual_ff,S_dff}),
@@ -109,45 +112,37 @@ convert(shelli_tf,{shelli_ff,Tab_f}) ->
 convert(shelli_ff,{shelli_tf,Tab_t}) ->
     {shelli_ff,set:deepf({tree,Tab_t})};
 convert(boundaries_f,{side_f,Tab_f}) ->
-    boundaries({side_f,Tab_f});
+    boundaries_f({side_f,Tab_f});
 convert(boundaries_f,{dual_ff,Tab_f}) ->
-    boundaries({dual_ff,Tab_f});
+    boundaries_f({dual_ff,Tab_f});
 convert(boundaries_f,{half_ff,Tab_f}) ->
-    boundaries({half_ff,Tab_f});
+    boundaries_f({half_ff,Tab_f});
 convert(regions_f,{side_f,Tab_f}) ->
-    regions({side_f,Tab_f});
+    regions_f({side_f,Tab_f});
 convert(regions_f,{dual_ff,Tab_f}) ->
-    regions({dual_ff,Tab_f});
+    regions_f({dual_ff,Tab_f});
 convert(regions_f,{half_ff,Tab_f}) ->
-    regions({half_ff,Tab_f});
+    regions_f({half_ff,Tab_f});
 convert(sides_f,{side_f,Tab_f}) ->
-    sides({side_f,Tab_f});
+    sides_f({side_f,Tab_f});
 convert(sides_f,{dual_ff,Tab_f}) ->
-    sides({dual_ff,Tab_f});
+    sides_f({dual_ff,Tab_f});
 convert(sides_f,{half_ff,Tab_f}) ->
-    sides({half_ff,Tab_f});
+    sides_f({half_ff,Tab_f});
 convert(length,{boundaries_f,Tab_f}) ->
     length({boundaries_f,Tab_f});
 convert(linear,{regions_f,Tab_f}) ->
     linear({regions_f,Tab_f});
-convert(attached_tf,{attached_ff,Tab_f}) ->
-    attached_tf({attached_ff,Tab_f});
-convert(shell_tf,{shell_ff,Tab_f}) ->
-    shell_tf({shell_ff,Tab_f});
-convert(attachedi_ff,{attached_ff,Tab_f}) ->
-    attachedi_ff({attached_ff,Tab_f});
-convert(attachedi_tf,{attachedi_ff,Tab_f}) ->
-    attachedi_tf({attachedi_ff,Tab_f});
-convert(shelli_ff,{shell_ff,Tab_f}) ->
-    shelli_ff({shell_ff,Tab_f});
-convert(shelli_tf,{shelli_ff,Tab_f}) ->
-    shelli_tf({shelli_ff,Tab_f});
 convert(_,{_,_}) ->
     throw([]).
 convert(duali_ff,{dual_tf,Tab_t},{sides_f,Sides}) ->
     duali_ff({dual_tf,Tab_t},{sides_f,Sides});
 convert(halfi_ff,{half_tf,Tab_t},{sides_f,Sides}) ->
     halfi_ff({half_tf,Tab_t},{sides_f,Sides});
+convert(linear,{dimension,Dim},{length,Len}) ->
+    linear({dimension,Dim},{length,Len});
+convert(dimension,{length,Len},{linear,Lin}) ->
+    dimension({length,Len},{linear,Lin});
 convert(_,{_,_},{_,_}) ->
     throw([]).
 convert(_,{_,_},{_,_},{_,_}) ->
@@ -168,89 +163,89 @@ convert(shell_ff,{dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{regions_
     shell_ff({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf});
 convert(_,{_,_},{_,_},{_,_},{_,_},{_,_}) ->
     throw([]).
-side({side_t,Tab_t},Boundary,Region) ->
+side({side_t,Tab_t},Boundary,Region) -> % accessor
     set:get(set:get({tree,Tab_t},Boundary),Region).
-side({dual_tt,Tab_t},{sides_f,Sides},Boundary,Region) ->
+side({dual_tt,Tab_t},{sides_f,Sides},Boundary,Region) -> % inducer
     Side = set:choose({flat,Sides}),
     Other = set:choose(set:remove({flat,Sides},Side)),
     {tree,Sidedness} = set:tree(set:unionk(set:singleton({false,Side}),set:singleton({true,Other}))),
     {tree,Boundaries} = dual({dual_tt,Tab_t},Side,Region),
     Member = set:member({tree,Boundaries},Boundary),
     set:get({tree,Sidedness},Member);
-side({half_tt,Tab_t},{sides_f,Sides},Boundary,Region) ->
+side({half_tt,Tab_t},{sides_f,Sides},Boundary,Region) -> % inducer
     Side = set:choose({flat,Sides}),
     Other = set:choose(set:remove({flat,Sides},Side)),
     {tree,Sidedness} = set:tree(set:unionk(set:singleton({false,Side}),set:singleton({true,Other}))),
     {tree,Regions} = half({half_tt,Tab_t},Side,Boundary),
     Member = set:member({tree,Regions},Region),
     set:get({tree,Sidedness},Member).
-side_f({dual_tt,Tab_t},{boundaries_f,Boundaries},{regions_f,Regions},{sides_f,Sides}) ->
+side_f({dual_tt,Tab_t},{boundaries_f,Boundaries},{regions_f,Regions},{sides_f,Sides}) -> % converter
     Fun = fun(Boundary,Region) ->
         side({dual_tt,Tab_t},{sides_f,Sides},Boundary,Region) end,
     {side_f,lambda:tabulate(Boundaries,Regions,Fun)};
-side_f({half_tt,Tab_t},{boundaries_f,Boundaries},{regions_f,Regions},{sides_f,Sides}) ->
+side_f({half_tt,Tab_t},{boundaries_f,Boundaries},{regions_f,Regions},{sides_f,Sides}) -> % converter
     Fun = fun(Boundary,Region) ->
         side({half_tt,Tab_t},{sides_f,Sides},Boundary,Region) end,
     {side_f,lambda:tabulate(Boundaries,Regions,Fun)}.
-side_b({side_t,Tab_t},Side,Boundary) ->
+side_b({side_t,Tab_t},Side,Boundary) -> % helper
     fun(Region) ->
         side({side_t,Tab_t},Boundary,Region) == Side end.
-side_r({side_t,Tab_t},Side,Region) ->
+side_r({side_t,Tab_t},Side,Region) -> % helper
     fun(Boundary) ->
         side({side_t,Tab_t},Boundary,Region) == Side end.
-dual({dual_tf,Tab_t},Side,Region) ->
+dual({dual_tf,Tab_t},Side,Region) -> % accessor
     set:get(set:get({tree,Tab_t},Side),Region);
-dual({side_t,Tab_t},{boundaries_f,Boundaries},Side,Region) ->
+dual({side_t,Tab_t},{boundaries_f,Boundaries},Side,Region) -> % inducer
     Fun = side_r({side_t,Tab_t},Side,Region),
     {flat,lists:filter(Fun,Boundaries)}.
-dual_ff({side_t,Tab_t},{boundaries_f,Boundaries},{side_f,Regions},{side_f,Sides}) ->
+dual_ff({side_t,Tab_t},{boundaries_f,Boundaries},{regions_f,Regions},{sides_f,Sides}) -> % converter
     Fun = fun(Side,Region) ->
         dual({side_t,Tab_t},{boundaries_f,Boundaries},Side,Region) end,
     {dual_ff,lambda:tabulate(Sides,Regions,Fun)}.
-half({half_tf,Tab_t},Side,Boundary) ->
+half({half_tf,Tab_t},Side,Boundary) -> % accessor
     set:get(set:get({tree,Tab_t},Boundary),Side).
-half({side_t,Tab_t},{regions_f,Regions},Side,Boundary) ->
+half({side_t,Tab_t},{regions_f,Regions},Side,Boundary) -> % inducer
     Fun = side_b({side_t,Tab_t},Side,Boundary),
     {flat,lists:filter(Fun,Regions)}.
-half_ff({side_t,Tab_t},{boundaries_f,Boundaries},{regions_f,Regions},{sides_f,Sides}) ->
+half_ff({side_t,Tab_t},{boundaries_f,Boundaries},{regions_f,Regions},{sides_f,Sides}) -> % converter
     Fun = fun(Side,Boundary) ->
         half({side_t,Tab_t},{side_f,Regions},Side,Boundary) end,
     {half_ff,lambda:tabulate(Sides,Boundaries,Fun)}.
-duali({duali_tf,Tab_t},Side,Boundaries) ->
+duali({duali_tf,Tab_t},Side,Boundaries) -> % accessor
     set:get(set:get({tree,Tab_t},Side),Boundaries);
-duali_ff({dual_tf,Tab_t},{sides_f,Sides}) ->
+duali_ff({dual_tf,Tab_t},{sides_f,Sides}) -> % converter
     Fun = fun(Side) ->
         set:inverse(set:get({tree,Tab_t},Side)) end,
     {duali_ff,lambda:tabulate(Sides,Fun)}.
-halfi({halfi_tf,Tab},Side,Regions) ->
+halfi({halfi_tf,Tab},Side,Regions) -> % accessor
     set:get(set:get({tree,Tab},Side),Regions).
-halfi_ff({half_tf,Tab_t},{sides_f,Sides}) ->
+halfi_ff({half_tf,Tab_t},{sides_f,Sides}) -> % converter
     Fun = fun(Side) ->
         set:inverse(set:flat(set:get({tree,Tab_t},Side))) end,
     {halfi_ff,lambda:tabulate(Sides,Fun)}.
-boundaries({side_f,Tab_f}) ->
+boundaries_f({side_f,Tab_f}) -> % converter
     {boundaries_f,set:list(set:domain({flat,Tab_f}))};
-boundaries({dual_ff,Tab_f}) ->
+boundaries_f({dual_ff,Tab_f}) -> % converter
     {boundaries_f,set:list(set:range(set:unionf(set:range({flat,Tab_f}))))};
-boundaries({half_ff,Tab_f}) ->
+boundaries_f({half_ff,Tab_f}) -> % converter
     {boundaries_f,set:list(set:domain(set:unionf(set:range({flat,Tab_f}))))}.
-regions({side_f,Tab_f}) ->
+regions_f({side_f,Tab_f}) -> % converter
     {regions_f,set:list(set:domain(set:unionf(set:range({flat,Tab_f}))))};
-regions({dual_ff,Tab_f}) ->
+regions_f({dual_ff,Tab_f}) -> % converter
     {regions_f,set:list(set:domain(set:unionf(set:range({flat,Tab_f}))))};
-regions({half_ff,Tab_f}) ->
+regions_f({half_ff,Tab_f}) -> % converter
     {regions_f,set:list(set:range(set:unionf(set:range({flat,Tab_f}))))}.
-sides({side_f,Tab_f}) ->
+sides_f({side_f,Tab_f}) -> % converter
     {sides_f,set:list(set:range(set:unionf(set:range({flat,Tab_f}))))};
-sides({dual_ff,Tab_f}) ->
+sides_f({dual_ff,Tab_f}) -> % converter
     {sides_f,set:list(set:domain({flat,Tab_f}))};
-sides({half_ff,Tab_f}) ->
+sides_f({half_ff,Tab_f}) -> % converter
     {sides_f,set:list(set:domain({flat,Tab_f}))}.
-length({boundaries_f,Tab_f}) ->
+length({boundaries_f,Tab_f}) -> % converter
     {length,set:length({flat,Tab_f})}.
-linear({regions_f,Tab_f}) ->
+linear({regions_f,Tab_f}) -> % converter
     {linear,set:length({flat,Tab_f})}.
-linear({dimension,_},{length,0}) ->
+linear({dimension,_},{length,0}) -> % converter
     {linear,1};
 linear({dimension,0},{length,_}) ->
     {linear,1};
@@ -258,13 +253,13 @@ linear({dimension,Dim},{length,Len}) ->
     {linear,Left} = linear({dimension,Dim},{length,Len-1}),
     {linear,Right} = linear({dimension,Dim-1},{length,Len-1}),
     {linear,Left+Right}.
-dimension({length,Len},{linear,Lin}) ->
+dimension({length,Len},{linear,Lin}) -> % converter
     fun (true) ->
         {dimension,0};
     (false) ->
         {dimension,dimension_r(Len,Lin,1)} end
     (linear({dimension,0},{length,Len}) == {linear,Lin}).
-dimension_r(Len,Lin,Dim) ->
+dimension_r(Len,Lin,Dim) -> % recursor
     fun (true) ->
         Dim;
     (false) ->
@@ -274,7 +269,7 @@ dimension_r(Len,Lin,Dim) ->
             dimension_r(Len,Lin,Dim * 2) end
         (linear({dimension,Dim * 2},{length,Len}) > {linear,Lin}) end
     (linear({dimension,Dim},{length,Len}) == {linear,Lin}).
-dimension_r(Len,Lin,Dim,Amt) ->
+dimension_r(Len,Lin,Dim,Amt) -> % recursor
     fun (true) ->
         Dim+Amt;
     (false) ->
@@ -284,114 +279,81 @@ dimension_r(Len,Lin,Dim,Amt) ->
             dimension_r(Len,Lin,Dim+Amt,Amt div 2) end
         (linear({dimension,Dim+Amt},{length,Len}) > {linear,Lin}) end
     (linear({dimension,Dim+Amt},{length,Len}) == {linear,Lin}).
-polyant({side_t,S_st},{regions_f,S_rf},
-    {flat,Map}) -> %% quadrant?
+neighbor({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},Boundary,Region) -> % inducer
+    % region
+    {flat,Set} = set:singleton(Boundary),
+    {flat,Neighbor} = neighbor({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},
+        {flat,Set},Region),
+    set:choose({flat,Neighbor}).
+neighbor_b({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},Boundary) -> % helper
+    % fun from region to bool
+    fun(Region) ->
+        try neighbor({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},Boundary,Region) of _ ->
+            true catch _ ->
+            false end end.
+neighbor_r({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},Region) -> % helper
+    % fun from boundary to bool
+    fun(Boundary) ->
+        try neighbor({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},Boundary,Region) of _ ->
+            true catch _ ->
+            false end end.
+neighbor({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},{flat,Boundaries},Region) -> % deducer
+    % region
+    Side = set:choose({flat,S_pf}),
+    {flat,Set} = set:flat(set:get({tree,S_dtf},Region)),
+    {flat,Sym} = set:symmetric({flat,Boundaries},{flat,Set}),
+    duali({duali_tf,S_ditf},Side,{flat,Sym}).
+polyant({side_t,S_st},{regions_f,S_rf},{flat,Map}) -> % deducer
+    % quadrant? flat regions
     Fun = fun(Region) ->
         Fun = fun({Boundary,Side}) ->
             side({side_t,S_st},Boundary,Region) /= Side end,
         not lists:any(Fun,Map) end,
     {flat,lists:filter(Fun,S_rs)}.
-neighbor({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},
-    {flat,Boundaries},Region) ->
-    Side = set:choose({flat,S_pf}),
-    {flat,Set} = set:flat(set:get({tree,S_dtf},Region)),
-    {flat,Sym} = set:symmetric({flat,Boundaries},{flat,Set}),
-    duali({duali_tf,S_ditf},Side,{flat,Sym}).
-neighbor({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},
-    Boundary,Region) ->
-    {flat,Set} = set:singleton(Boundary),
-    {flat,Neighbor} = neighbor({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},
-        {flat,Set},Region),
-    set:choose({flat,Neighbor}).
-neighbor_b({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},
-    Boundary) ->
-    fun(Region) ->
-        try neighbor({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},
-                Boundary,Region) of _ ->
-            true catch _ ->
-            false end end.
-neighbor_r({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},
-    Region) ->
-    fun(Boundary) ->
-        try neighbor({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},
-                Boundary,Region) of _ ->
-            true catch _ ->
-            false end end.
-pencil({dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},
-    {flat,Boundaries}) ->
+pencil({dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},{flat,Boundaries}) -> % deducer
+    % flat regions
     Fun = fun(Region) ->
-        try neighbor({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},
-                {flat,Boundaries},Region) of _ ->
+        try neighbor({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},{flat,Boundaries},Region) of _ ->
             true catch _ ->
             false end end,
     {flat,lists:filter(Fun,S_rs)}.
-corner({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rs),{sides_f,S_pf},
-    {flat,Map}) ->
-    {flat,Sup} = polyant({side_t,S_st},{regions_f,S_rf},
-        {flat,Map}),
+polycil({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rs),{sides_f,S_pf},{flat,Map}) -> % deducer
+    % flat regions
+    {flat,Sup} = polyant({side_t,S_st},{regions_f,S_rf},{flat,Map}),
     {flat,Boundaries} = set:domain({flat,Map}),
-    {flat,Sub} = pencil({dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},
-        {flat,Boundaries}),
+    {flat,Sub} = pencil({dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},{flat,Boundaries}),
     set:intersect({flat,Sup},{flat,Sub}).
-attached({attached_tf,S_atf},Boundary) ->
+attached({attached_tf,S_atf},Boundary) -> % accessor
     set:get({tree,S_atf},Boundary).
-attached({dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},
-    Boundary) ->
+attached({dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},Boundary) -> % inducer
     Fun = neighbor_b({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},
         Boundary),
     {flat,lists:filter(Fun,S_rs)}.
-attached_ff({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf}) ->
+attached_ff({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf}) -> % converter
     Fun = fun(Boundary) ->
         set:list(attached({dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},Boundary)) end,
     {attached_ff,lambda:tabulate(S_bs,Fun)}.
-shell({shell_tf,S_btf},Region) ->
+shell({shell_tf,S_btf},Region) -> % accessor
     set:get({tree,S_btf},Region).
 shell({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},
-    Region) ->
+    Region) -> % inducer
     Fun = neighbor_r({dual_tf,S_dtf},{duali_tf,S_ditf},{sides_f,S_pf},
         Region),
     {flat,lists:filter(Fun,S_bs)}.
 shell_ff({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf}) ->
-    Fun = fun(Region) ->
+    Fun = fun(Region) -> % converter
         shell({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf},Region) end,
     {shell_ff,lambda:tabulate(S_rs,Fun)}.
-attachedi({attachedi_tf,Tab_t},Regions) ->
+attachedi({attachedi_tf,Tab_t},Regions) -> % accessor
     set:get({tree,Tab_t},Regions).
-attachedi_ff({attached_ff,Tab_f}) ->
+attachedi_ff({attached_ff,Tab_f}) -> % converter
     {attachedi_ff,set:list(set:inverse({flat,Tab_f}))}.
-shelli({shelli_tf,Tab_t},Boundaries) ->
+shelli({shelli_tf,Tab_t},Boundaries) -> % accessor
     set:get({tree,Tab_t},Boundaries).
-shelli_ff({shell_ff,Tab_f}) ->
+shelli_ff({shell_ff,Tab_f}) -> % converter
     {shelli_ff,set:list(set:inverse({flat,Tab_f}))}.
-connected({dual_tf,_},{duali_tf,_},{boundaries_f,_},{sides_f,_},
-    {flat,[]}) ->
-    {flat,[]};
-connected({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},
-    {flat,Regions}) ->
-    connected({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},
-        {flat,Regions},set:choose({flat,Regions})).
-connected({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},
-    {flat,Regions},Region) ->
-    set:sort(
-        connected_r({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},
-            {flat,Regions},[],[])).
-connected_r({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},
-    {flat,Regions},[],Acc) ->
-    Acc;
-connected_r({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},
-    {flat,Regions},[H|T],Acc) ->
-    {flat,Shell} = shell({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},H),
-    {flat,Todo} = set:intersect({flat,Shell},{flat,Regions}),
-    {flat,Diff} = set:difference({flat,Regions},{flat,Todo}),
-    connected({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},Diff,T++Todo,[H|Acc]).
-sign({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},
-    Boundary,{flat,Vertex}) ->
-    {flat,Regions} = pencil({dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},
-        {flat,Vertex}),
-    Region = set:choose({flat,Regions}),
-    side({side_t,S_st},Boundary,Region).
-axis({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},
-    {flat,V0},{flat,V1}) -> %% one to one map from pencil of vertex V0 to pencil of V1
+axis({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},{flat,I0},{flat,I1}) -> % deducer
+    % one to one flat map from pencil of incidence I0 to pencil of I1
     Side = set:choose({flat,S_pf}),
     Other = set:choose(set:difference({flat,S_pf},set:singleton(Side))),
     Xor = fun(Side,false) ->
@@ -402,47 +364,88 @@ axis({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S
         Other;
     (Other,true) ->
         Side end,
-    {flat,P0} = pencil({dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},{flat,V0}),
-    {flat,P1} = pencil({dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},{flat,V1}),
+    {flat,P0} = pencil({dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},{flat,I0}),
+    {flat,P1} = pencil({dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},{flat,I1}),
     R0 = set:choose({flat,P0}),
     Wrap = fun(Region,Boundary) ->
         side({side_t,S_st},Boundary,Region) end,
     Conv0 = fun({B0,{B1,Side}}) ->
         {B0,Xor(Side,(side({side_t,S_st},B0,R0)!=side({side_t,S_st},B1,R0)))} end,
     Conv1 = fun(R1,{flat,Map}) ->
-        {R1,lists:map(Conv0,lambda:zip(V0,Map))} end,
-    {tree,Map0} = set:tree({flat,lambda:tabulate(P0,V0,Wrap)}),
-    {flat,Map} = {flat,lambda:tabulate(P1,V1,Wrap)},
+        {R1,lists:map(Conv0,lambda:zip(I0,Map))} end,
+    {tree,Map0} = set:tree({flat,lambda:tabulate(P0,I0,Wrap)}),
+    {flat,Map} = {flat,lambda:tabulate(P1,I1,Wrap)},
     {tree,Map1} = set:tree(set:inverse({flat,lists:map(Conv1,Map)})),
     Fun = fun(Region) ->
         Map = set:get({tree,Map0},Region),
         set:get({tree,Map1},Map) end,
     {flat,lists:map(Fun,P0)}.
-facet({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},
-    Boundary,Region) -> %% shell of region in section by boundary
+facet({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},Boundary,Region) -> % deducer
+    % flat regions shell in section by boundary
     [{dual_tf,S0_dtf},{duali_tf,S0_ditf},{boundaries_f,S0_bf},{sides_f,S0_pf}] = convert(
         [dual_tf,duali_tf,boundaries_f,sides_f],
-        section({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},
-            {flat,[Boundary]})),
+        section({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},{flat,[Boundary]})),
     {flat,Dual} = dual({dual_tf,S_dtf},Region),
     {flat,Diff} = set:difference({flat,Dual},set:singleton(Boundary)),
     Take = duali({duali_tf,S0_ditf},{flat,Diff}),
     shell({dual_tf,S0_dtf},{duali_tf,S0_ditf},{boundaries_f,S0_bf},{sides_f,S0_pf},Take).
-subspace({dual_tf,S_dtf},{regions_f,S_rf},{sides_f,S_pf},
-    {flat,Set}) ->
+ordering({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf}) -> % deducer
+    % only for 1 dimension
+    Fun = fun(Region) ->
+        set:length(shell({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},Region)) == 1 end,
+    Start = set:choose({flat,lists:filter(Fun,S_rs)}),
+    fun Fun([],_,Acc) ->
+        Acc; Fun(Set,Region,Acc) ->
+        Boundary = set:choose(Set),
+        Neighbor = neighbor(S,Boundary,Regon),
+        Shell = shell({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},Neighbor),
+        Fun(set:remove(Shell,Boundary),Neighbor,[Boundary|Acc]) end
+    (shell({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},Start),Start,[]).
+connected({dual_tf,_},{duali_tf,_},{boundaries_f,_},{sides_f,_},{flat,[]}) -> % deducer
+    % flat regions
+    {flat,[]};
+connected({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},{flat,Regions}) ->
+    connected({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},
+        {flat,Regions},set:choose({flat,Regions})).
+connected({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},{flat,Regions},Region) -> % deducer
+    set:sort(connected_r({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},{flat,Regions},[],[])).
+connected_r({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},{flat,Regions},[],Acc) -> % recursor
+    Acc;
+connected_r({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},{flat,Regions},[H|T],Acc) ->
+    {flat,Shell} = shell({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},H),
+    {flat,Todo} = set:intersect({flat,Shell},{flat,Regions}),
+    {flat,Diff} = set:difference({flat,Regions},{flat,Todo}),
+    connected({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},Diff,T++Todo,[H|Acc]).
+canonical(List,1,{sides_f,Sides},{dimension,1}) -> % constructor
+    Side = set:choose(Sides),
+    Fun0 = fun Fun(Head,Tail,0) ->
+        Head; (Head,{H|T},Num) ->
+        Fun([H|Head],T,Num-1) end,
+    Fun1 = fun(S,Region) when S == Side ->
+        lists:reverse(Fun([],List,Region)); fun(_,Region) ->
+        lists:nthtail(List,Region) end,
+    {dual_ff,lambda:tabulate(Sides,lists:seq(0,length-1),Fun1)};
+canonical(List,Listl,{sides,Sides},{dimension,Dimension}) when Dimension == Listl ->
+    {flat,Sort} = set:sort(List),
+    {flat,Power} = set:sets({flat,Sort}),
+    {dual_ff,set:counti({flat,Power})};
+canonical(List,Listl,{sides,Sides},{dimension,Dimension}) when Dimension == Listl-1 ->
+    {flat,Sort} = set:sort(List),
+    {flat,Power} = set:sets({flat,Sort}),
+    {flat,Simplex} = set:difference({flat,Power},{flat,[]}),
+    {dual_ff,set:counti({flat,Simplex})}.
+subspace({dual_tf,S_dtf},{regions_f,S_rf},{sides_f,S_pf},{flat,Set}) -> % constructor
     Fun0 = fun(Region,Side) ->
         {flat,Get} = set:convert(flat,set:get(set:get({tree,S_dtf},Side),Region)),
         set:tree(set:intersect({flat,Set},{flat,Get})) end,
-    {flat,Map0} = set:uniquefy_v(set:tabulate(S_rs,S_pf,Fun0)),
+    {flat,Map0} = set:uniquefyv(set:tabulate(S_rs,S_pf,Fun0)),
     {tree,Map1} = set:deept({flat,Map0}),
     Fun1 = fun(Side,Region) ->
         set:convert(flat,set:get(set:get({tree,Map1},Region),Side)) end,
     {dual_ff,lambda:tabulate(S_pf,set:list(set:domain({flat,Map0})),Fun1)}.
-section({side_t,_},{dual_tf,S_dtf},{duali_tf,_},{regions_f,_},{sides_f,_},
-    {flat,[]}) ->
+section({side_t,_},{dual_tf,S_dtf},{duali_tf,_},{regions_f,_},{sides_f,_},{flat,[]}) -> % constructor
     convert(dual_ff,{dual_tf,S_dtf});
-section({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},
-    {flat,[Boundary]}) ->
+section({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},{flat,[Boundary]}) ->
     Side = set:choose(S_pf),
     {tree,Map} = set:get({tree,S_st},Boundary),
     Fun0 = fun(Region) ->
@@ -454,8 +457,7 @@ section({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_
         {flat,Dual} = dual({dual_tf,S_dtf},Side,Region),
         set:remove({flat,Dual},Boundary) end,
     {dual_ff,lambda:tabulate(S_pf,Attached,Fun1)};
-section({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},
-    {flat,[Boundary|Boundaries]}) ->
+section({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},{flat,[Boundary|Boundaries]}) ->
     [{side_t,S0_st},{dual_tf,S0_dtf},{duali_tf,S0_ditf},{regions_f,S0_rf},{sides_f,S0_pf}] = convert(
         [side_t,dual_tf,duali_tf,regions_f,sides_f],
         section({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_f,S_pf},
@@ -463,12 +465,10 @@ section({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{regions_f,S_rf},{sides_
     section({side_t,S0_st},{dual_tf,S0_dtf},{duali_tf,S0_ditf},{regions_f,S0_rf},{sides_f,S0_pf},
         {flat,Boundaries}).
 %% sections have same boundaries as space
-subsection({side_t,S_st},{dual_tf,_},{duali_tf,_},
-    {boundaries_f,_},{regions_f,_},{sides_f,_},
-    [],[],[]) ->
+subsection({side_t,S_st},{dual_tf,_},{duali_tf,_},{boundaries_f,_},{regions_f,_},{sides_f,_},
+    [],[],[]) -> % constructor
     convert(side_f,{side_t,S_st});
-subsection({side_t,_},{dual_tf,_},{duali_tf,_},
-    {boundaries_f,_},{regions_f,_},{sides_f,_},
+subsection({side_t,_},{dual_tf,_},{duali_tf,_},{boundaries_f,_},{regions_f,_},{sides_f,_},
     [{dual_tf,S0_dtf}],[{regions_f,S0_rf}],[{sides_f,S0_pf}]) ->
     {dual_ff,S0_dff} = convert(dual_ff,{dual_tf,S0_dtf}),
     {boundaries_f,S0_bf} = convert(boundaries_f,{dual_ff,S0_dff}),
@@ -510,8 +510,7 @@ subsection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{
     supersection({side_t,S6_st},{dual_tf,S6_dtf},{duali_tf,S6_ditf},
         {boundaries_f,S6_bf},{regions_f,S6_rf},{sides_f,S6_pf},
         {duali_tf,S7_ditf},Boundary);
-subsection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},
-    {boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf},
+subsection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf},
     [{dual_tf,S0_dtf}|S0s_d],[{regions_f,S0_rf}|S0s_rs],[{sides_f,S0_pf}|S0s_pf]) ->
     Fun = fun({{dual_tf,S1_dtf},{regions_f,S1_rf},{sides_f,S1_pf}}) ->
         subsection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},
@@ -526,9 +525,8 @@ subsection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},
         lists:map(fun(S1_s) -> convert(regions_f,S1_s) end,S1s_s),
         lists:map(fun(S1_s) -> convert(sides_f,S1_s) end,S1s_s)).
 %% sections have same boundaries as space
-supersection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},
-    {boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf},
-    {duali_tf,S0_ditf},Boundary) ->
+supersection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf},
+    {duali_tf,S0_ditf},Boundary) -> % constructor
     {flat,Boundaries} = set:insert(S_bs,Boundary),
     Side = set:choose({flat,S_pf}),
     Other = set:choose(set:remove({flat,S_pf},Side)),
@@ -544,42 +542,35 @@ supersection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},
     Fun1 = fun(Bound,Region) when Bound == Boundary ->
         set:get({tree,Sidedness},set:member({tree,Half},Region)); (_,_) ->
         set:get(set:get({tree,S_st},Bound),Region) end,
-    {flat,Ground} = {flat,lambda:tabulate(Boundaries,S_rs,Fun1)}, %% regions on Side of Boundary if in Half
+    {flat,Ground} = {flat,lambda:tabulate(Boundaries,S_rs,Fun1)}, % regions on Side of Boundary if in Half
     Fun2 = fun(Bound,Region) when Bound == Boundary ->
         Side = set:get(set:get(Ground,Bound),Region),
         set:get(Sidedness,not set:get(Truth,Side)); (Bound,Region) ->
         set:get(set:get(Ground,Bound),Region) end,
-    {tree,Figure} = set:tree({flat,lambda:tabulate(Boundaries,Divided,Fun2)}), %% Divided to regions similar except opposite Boundary
-    {tree,Map} = set:tree(set:sortk(lambda:zip(Divided,set:holes({flat,S_rf},set:length({flat,Divided}))))),
+    % Divided to regions similar except opposite Boundary
+    {tree,Figure} = set:tree({flat,lambda:tabulate(Boundaries,Divided,Fun2)}),
+    {tree,Map} = set:tree(set:sort(lambda:zip(Divided,set:holes({flat,S_rf},set:length({flat,Divided}))))),
     Fun3 = fun({Region,Side}) ->
         {set:get({tree,Map},Region),Side} end,
-    %% {tree,Holes} = set:tree(set:count(set:holes({flat,S_rf},set:length({flat,Divided})))),
-    %% {tree,Count} = set:tree(set:counti({flat,Divided})),
-    %% Fun3 = fun({Region,Side}) ->
-    %%     {set:get({tree,Holes},set:get({tree,Count},{flat,Divided})),Side} end,
     Fun4 = fun(Bound) ->
         set:sort(lists:map(Fun3,set:get({tree,Figure},Bound))) end,
-    %% return union of augmented regions and complementary divided
+    % return union of augmented regions and complementary divided
     {side_f,set:list(set:unionk({flat,Ground},{flat,lambda:tabulate(Boundaries,Fun4)}))};
-supersection({side_t,S_st},{dual_tf,_},{duali_tf,_},
-    {boundaries_f,_},{regions_f,_},{sides_f,_},
+supersection({side_t,S_st},{dual_tf,_},{duali_tf,_},{boundaries_f,_},{regions_f,_},{sides_f,_},
     [],[],[],[],[],[],[]) ->
     convert(side_f,{side_t,S_st});
-supersection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},
-    {boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf},
-    [{side_t,S0_st}],[{dual_tf,S0_dtf}],[{duali_tf,S0_ditf}],
-    [{boundaries_f,S0_bf}],[{regions_f,S0_rf}],[{sides_f,S0_pf}],
+supersection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf},
+    [{side_t,S0_st}],[{dual_tf,S0_dtf}],[{duali_tf,S0_ditf}],[{boundaries_f,S0_bf}],[{regions_f,S0_rf}],[{sides_f,S0_pf}],
     [Boundary]) ->
     supersection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},
         {boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf},
         {duali_tf,S0_ditf},Boundary);
-supersection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},
-    {boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf},
+supersection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf},
     [{side_t,S0_st}|S0s_s],[{dual_tf,S0_dtf}|S0s_d],[{duali_tf,S0_ditf}|S0s_di],
     [{boundaries_f,S0_bf}|S0s_bs],[{regions_f,S0_rf}|S0s_rs],[{sides_f,S0_pf}|S0s_pf],
     [Boundary|Boundaries]) ->
     Fun = fun({{side_t,S1_st},{dual_tf,S1_dtf},{duali_tf,S1_ditf},
-        {boundaries_bs,S1_bf},{regions_rs,S1_rf},{sides_pf,S1_pf}}) ->
+        {boundaries_f,S1_bf},{regions_rs,S1_rf},{sides_pf,S1_pf}}) ->
         {duali_tf,S2_ditf} = convert([duali_tf],
             subsection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},
                 {boundaries_f,S_bf},{regions_f,S_rf},{sides_f,S_pf},
@@ -606,64 +597,32 @@ supersection({side_t,S_st},{dual_tf,S_dtf},{duali_tf,S_ditf},
         lists:map(fun(S1) -> convert(regions_f,S1) end,S1s),
         lists:map(fun(S1) -> convert(sides_f,S1) end,S1s),
         Boundaries).
-canonical(List,1,{sides_f,Sides},{dimension,1}) ->
-    Side = set:choose(Sides),
-    Fun0 = fun Fun(Head,Tail,0) ->
-        Head; (Head,{H|T},Num) ->
-        Fun([H|Head],T,Num-1) end,
-    Fun1 = fun(S,Region) when S == Side ->
-        lists:reverse(Fun([],List,Region)); fun(_,Region) ->
-        lists:nthtail(List,Region) end,
-    {dual_ff,lambda:tabulate(Sides,lists:seq(0,length-1),Fun1)};
-canonical(List,Listl,{sides,Sides},{dimension,Dimension}) when Dimension == Listl ->
-    {flat,Sort} = set:sort(List),
-    {flat,Power} = set:sets({flat,Sort}),
-    {dual_ff,set:counti({flat,Power})};
-canonical(List,Listl,{sides,Sides},{dimension,Dimension}) when Dimension == Listl-1 ->
-    {flat,Sort} = set:sort(List),
-    {flat,Power} = set:sets({flat,Sort}),
-    {flat,Simplex} = set:difference({flat,Power},{flat,[]}),
-    {dual_ff,set:counti({flat,Simplex})}.
-orderings({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},{dimension,1}) ->
-    Fun0 = fun(Region) ->
-        set:length(shell({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},Region)) == 1 end,
-    Start = set:choose({flat,lists:filter(Fun0,S_rs)}),
-    Fun1 = fun Fun([],_,Acc) ->
-        Acc; Fun(Set,Region,Acc) ->
-        Boundary = set:choose(Set),
-        Neighbor = neighbor(S,Boundary,Regon),
-        Shell = shell({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},Neighbor),
-        Fun(set:remove(Shell,Boundary),Neighbor,[Boundary|Acc]) end,
-    List = Fun1(shell({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},Start),Start,[]),
-    set:sort([List,lists:reverse(List)]).
-orderings({dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sides_f,S_pf},{dimension,S_n}) ->
-    .
 superspace([{dual_tf,S_dtf}|Ss_d],[{duali_tf,S_ditf}|Ss_di],
     [{boundaries_f,S_bf}|Ss_bs],[{regions_f,_}|_],[{sides_f,S_pf}|Ss_pf],
-    {dimension,1}) -> %%6
+    {dimension,1}) -> % constructor % 6
     superspace_r([{dual_tf,S_dtf}|Ss_d],[{duali_tf,S_ditf}|Ss_di],
-        [{boundaries_f,S_bf}|Ss_bs],[{sides_f,S_pf}|Ss_pf]); %%4
+        [{boundaries_f,S_bf}|Ss_bs],[{sides_f,S_pf}|Ss_pf]); % 4
 superspace([{dual_tf,S_dtf}|Ss_d],[{duali_tf,_}|_],
     [{boundaries_f,_}|_],[{regions_f,S_rf}|Ss_rs],[{sides_f,S_pf}|Ss_pf],
     {dimension,_}) ->
-    superspace_r([{dual_tf,S_dtf}|Ss_d],[{regions_f,S_rf}|Ss_rs],[{sides_f,S_pf}|Ss_pf]). %%3
-superspace_r([{dual_tf,S_dtf}],[{duali_tf,_}],[{boundaries_f,_}],[{sides_f,_}]) -> %%4
+    superspace_r([{dual_tf,S_dtf}|Ss_d],[{regions_f,S_rf}|Ss_rs],[{sides_f,S_pf}|Ss_pf]). % 3
+superspace_r([{dual_tf,S_dtf}],[{duali_tf,_}],[{boundaries_f,_}],[{sides_f,_}]) -> % 4
     dual_ff({dual_tf,S_dtf});
 superspace_r([{dual_tf,S0_dtf},{dual_tf,S1_dtf}],[{duali_tf,S0_ditf},{duali_tf,S1_ditf}],
     [{boundaries_f,S0_bf},{boundaries_f,S1_bf}],[{sides_f,S0_pf},{sides_f,S1_pf}]) ->
-    List0 = set:choose(orderings({dual_tf,S0_dtf},{duali_tf,S0_ditf},{boundaries_f,S0_bf},{sides_f,S0_pf},{dimension,1})),
-    List1 = set:choose(orderings({dual_tf,S1_dtf},{duali_tf,S1_ditf},{boundaries_f,S1_bf},{sides_f,S1_pf},{dimension,1})),
+    List0 = ordering({dual_tf,S0_dtf},{duali_tf,S0_ditf},{boundaries_f,S0_bf},{sides_f,S0_pf}),
+    List1 = ordering({dual_tf,S1_dtf},{duali_tf,S1_ditf},{boundaries_f,S1_bf},{sides_f,S1_pf}),
     canonical([List0,List1],2,S0_pf,{dimension,1});
 superspace_r([{dual_tf,S0_dtf},{dual_tf,S1_dtf}|Ss_d],[{duali_tf,S0_ditf},{duali_tf,S1_ditf}|Ss_di],
     [{boundaries_f,S0_bf},{boundaries_f,S1_bf}|Ss_bs],[{sides_f,S0_pf},{sides_f,S1_pf}|Ss_ss]) ->
     [{dual_tf,S_dtf},{duali_tf,S_ditf},{boundaries_f,S_bf},{sided_f,S_pf}] = convert(
         [dual_tf,duali_tf,boundaries_f,sides_f],
         superspace_r([{dual_tf,S0_dtf},{dual_tf,S1_dtf}],[{duali_tf,S0_ditf},{duali_tf,S1_ditf}],
-            [{boundaries_f,S0_bf},{boundaries_F,S1_bf}],[{sides_f,S0_pf},{sides_f,S1_pf}])), %%4
+            [{boundaries_f,S0_bf},{boundaries_F,S1_bf}],[{sides_f,S0_pf},{sides_f,S1_pf}])), % 4
     superspace_r([{dual_tf,S_dtf}|Ss_d],[{duali_tf,S_ditf}|Ss_di],
-        [{boundaries_f,S_bf}|Ss_bs],[{sides_f,S_pf},Ss_ss]). %%4
+        [{boundaries_f,S_bf}|Ss_bs],[{sides_f,S_pf},Ss_ss]). % 4
 superspace_r([{dual_tf,S_dtf}],
-    [{regions_f,_}],[{sides_f,_}]) -> %%3
+    [{regions_f,_}],[{sides_f,_}]) -> % 3
     dual_ff({dual_tf,S_dtf});
 superspace_r([{dual_tf,S0_dtf},{dual_tf,S1_dtf}],
     [{regions_f,S0_rf},{regions_f,S1_rf}],[{sides_f,S0_pf},{sides_f,S1_pf}]) ->
@@ -672,17 +631,17 @@ superspace_r([{dual_tf,S0_dtf},{dual_tf,S1_dtf}],
     {flat,Diff1} = set:difference(S1_bs,Shared),
     superspace_r({flat,Shared},{dual_tf,S0_dtf},{dual_tf,S1_dtf},
         {regions_f,S0_rf},{regions_f,S1_rf},{sides_f,S0_pf},{sides_f,S1_pf},
-        {flat,Diff0},{flat,Diff1},set:length(Diff0),set:length(Diff1)); %%11
+        {flat,Diff0},{flat,Diff1},set:length(Diff0),set:length(Diff1)); % 11
 superspace_r([{dual_tf,S0_dtf},{dual_tf,S1_dtf}|Ss_d],
     [{regions_f,S0_rf},{regions_f,S1_rf}|Ss_rs],[{sides_f,S0_pf},{sides_f,S1_pf}|Ss_ss]) ->
     [{dual_tf,S_dtf},{regions_f,S_rf},{sides_f,S_pf}] = convert([dual_tf,regions_f,sides_f],
         superspace_r([{dual_tf,S0_dtf},{dual_tf,S1_dtf}],
-            [{regions_f,S0_rf},{regions_f,S1_rf}],[{sides_f,S0_pf},{sides_f,S1_pf}])), %%3
+            [{regions_f,S0_rf},{regions_f,S1_rf}],[{sides_f,S0_pf},{sides_f,S1_pf}])), % 3
     superspace_r([{dual_tf,S_dtf}|Ss_d],
-        [{regions_f,S_rf}|Ss_rs],[{sides_f,S_pf},Ss_ss]). %%3
+        [{regions_f,S_rf}|Ss_rs],[{sides_f,S_pf},Ss_ss]). % 3
 superspace_r(_,{dual_tf,S0_dtf},{dual_tf,_},
     {regions_f,_},{regions_f,_},{sides_f,_},{sides_f,_},
-    _,_,_,0) -> %%11
+    _,_,_,0) -> % 11
     dual_ff({dual_tf,S0_dtf});
 superspace_r(_,[{dual_tf,_},{dual_tf,S1_dtf}],
     [{regions_f,_},{regions_f,_}],[{sides_f,_},{sides_f,_}],

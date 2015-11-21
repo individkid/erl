@@ -3,7 +3,7 @@
 %%% a permutation is a list
 %%% a partition is list of sets specifying a set of permutations
 %%% a set refines a partition
-%% all returns all permutations of a partition
+%% return all permutations of a partition
 all([{flat,Set}|Tail]) ->
     Lists = set:lists({flat,Set}),
     Fun = fun(Left,Right) ->
@@ -11,14 +11,16 @@ all([{flat,Set}|Tail]) ->
     lists:map(Fun,lambda:cross(Lists,all(Tail)));
 all([]) ->
     [].
-%% any returns any permutation of a partition
+%% return any permutation of a partition
 any(List) ->
-    lists:append(List).
+    Fun = fun({flat,Set}) ->
+        set:list({flat,Set}) end,
+    lists:append(lists:map(Fun,List)).
 %% sub refines a partition by a set, returning a partition specifying a subset of the permutations specified by given
 sub(Part,{flat,Set}) ->
     Fun0 = fun({flat,Sub}) ->
         [set:intersection({flat,Sub},{flat,Set}),set:difference({flat,Sub},{flat,Set})] end,
-    Fun1 = fun([]) -> false; (_) -> true end,
+    Fun1 = fun({flat,[]}) -> false; ({flat,_}) -> true end,
     lists:filter(Fun1,lists:append(lists:map(Fun0,Part))).
 %% list returns all tuples of boundary region side permutation from result of permute
 list([{Perm,Part,Side}|Tail]) ->

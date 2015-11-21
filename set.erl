@@ -10,7 +10,8 @@
 -export([closed/3,closedk/3,closedv/3]).
 -export([clopen/3,clopenk/3,clopenv/3]).
 -export([opclosed/3,opclosedk/3,opclosedv/3]).
--export([uniquefy/1,sort/1,image/2,inverse/1,reverse/2]).
+-export([uniquefy/1,uniquefyk/1,uniquefyv/1]).
+-export([sort/1,image/2,inverse/1,reverse/2]).
 -export([domain/1,range/1,insert/2,remove/2]).
 -export([length/1,singleton/1,member/2,get/2]).
 -export([hole/1,holes/2,count/1,counti/1]).
@@ -259,15 +260,6 @@ sort([H|T]) ->
     {flat,union({flat,L},{flat,R})};
 sort(Elem) ->
     Elem.
-sortk([]) ->
-    {flat,[]};
-sortk([H]) ->
-    {flat,[H]};
-sortk([H|T]) ->
-    {L,R} = lists:split(erlang:length([H|T]) div 2,[H|T]),
-    {flat,unionk({flat,L},{flat,R})};
-sortk(Elem) ->
-    Elem.
 image({flat,Set_f},{tree,Map_t}) ->
     Fun = fun(Elem) ->
         closedv({tree,Map_t},Elem,Elem) end,
@@ -275,7 +267,7 @@ image({flat,Set_f},{tree,Map_t}) ->
 inverse({flat,Flat}) ->
     Fun = fun({Key,Val}) ->
         {Val,Key} end,
-    sortk(lists:map(Fun,Flat)).
+    sort(lists:map(Fun,Flat)).
 reverse({flat,Set_f},{flat,Map_f}) ->
     {flat,Inv_f} = inverse({flat,Map_f}),
     {tree,Inv_t} = tree({flat,Inv_f}),
@@ -284,7 +276,7 @@ reverse({flat,Set_f},{flat,Map_f}) ->
 domain({flat,Flat}) ->
     {flat,lists:map(fun key/1,Flat)}.
 range({flat,Flat}) ->
-    uniquefy(set:sort(lists:map(fun val/1,Flat))).
+    uniquefy(sort(lists:map(fun val/1,Flat))).
 insert({flat,Flat},Elem) ->
     union({flat,Flat},{flat,[Elem]}).
 remove({flat,Flat},Elem) ->
@@ -348,27 +340,31 @@ sets_r([H|T]) ->
         [H|List] end,
     Lists = sets_r(T),
     Larger = lists:map(Fun,Lists),
-    Lists++Larger.
+    Larger++Lists.
 sets({flat,Flat},Length) ->
     Fun = fun(List) ->
         {flat,List} end,
     Number = erlang:length(Flat),
-    Lists = sets_r(Flat,Number,Length),
+    Lists = fun() when Number < Length ->
+        [];
+    () ->
+        sets_r(Flat,erlang:length(Flat),Length) end
+    (),
     Sets = lists:map(Fun,Lists),
     {flat,Sets}.
-sets_r(_,Number,Length) when Number < Length ->
+sets_r(_,_,0) ->
     [];
-sets_r(List,_,Length) ->
-    sets_r(List,Length).
-sets_r(_,0) ->
-    [];
-sets_r([H|T],Length) ->
+sets_r(List,Len,Length) when Len == Length ->
+    List;
+sets_r([H|T],Len,Length) when Len > Length ->
     Fun = fun(List) ->
         [H|List] end,
-    After = sets_r(T,Length),
-    Smaller = sets_r(T,Length-1),
+    After = sets_r(T,Len-1,Length),
+    Smaller = sets_r(T,Len-1,Length-1),
     Lists = lists:map(Fun,Smaller),
-    After++Lists.
+    Lists++After.
+sets({flat,Flat},Length,Limit) ->
+    .
 lists({flat,Flat}) -> %% list of permutations
     sort(lists_r(Flat)).
 lists_r([]) -> %% returns list of permutations of given list

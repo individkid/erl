@@ -153,16 +153,24 @@ deep(Elem,Fun) ->
 tabulate(List,Giv) ->
     Fun = fun(Elem) ->
         {Elem,Giv(Elem)} end,
-    map(List,Fun).
+    lists:map(Fun,List).
 tabulate(List0,List1,Giv) ->
     Fun = fun(Elem0) ->
         Fun = fun(Elem1) ->
             Giv(Elem0,Elem1) end,
         {Elem0,tabulate(List1,Fun)} end,
-    map(List0,Fun).
+    lists:map(Fun,List0).
 tabulate(List0,List1,List2,Giv) ->
     Fun = fun(Elem0) ->
         Fun = fun(Elem1,Elem2) ->
             Giv(Elem0,Elem1,Elem2) end,
         {Elem0,tabulate(List1,List2,Fun)} end,
-    map(List0,Fun).
+    lists:map(Fun,List0).
+collect(List) ->
+    Fun = fun({Key,Val},[{Last,List}|Tail]) when Key == Last ->
+        [{Last,[Val|List]}|Tail];
+    ({Key,Val},[{Last,List}|Tail]) when Key /= Last ->
+        [{Key,[Val]}|Tail];
+    ({Key,Val},[]) ->
+        [{Key,[Val]}] end,
+    lists:fold(Fun,List,[]).
