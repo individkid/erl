@@ -123,3 +123,5 @@ permute_r3({{half_tf,S_htf},List,Count0},[{Perm,Part,Side,[Head|Pool],Count3}|Ca
 %% {NewSurvivors,NewMax,NewCount2,NewCandidates} = permute_r4(Fixed,Survivors),
 permute_r4({{half_tf,S_htf},List,Count0},Survivors) ->
     {[],0,erlang:length(Survivors),Survivors}.
+permute(Polytope) ->
+    .

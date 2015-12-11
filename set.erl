@@ -1,5 +1,6 @@
 -module(set).
--export([convert/2,select/2,table/2]).
+
+-export([access/2,access/3]).
 -export([flat/1,tree/1,deept/1,deepf/1,list/1]).
 -export([compare/2,ident/1,key/1,val/1]).
 -export([combine/5,combine/6,find/5]).
@@ -16,14 +17,12 @@
 -export([length/1,singleton/1,member/2,get/2]).
 -export([hole/1,holes/2,count/1,counti/1]).
 -export([sets/1,sets/2,lists/1,lists/2]).
-convert([H|T],{Tag,Tab}) ->
-    lambda:convert([H|T],{Tag,Tab},fun convert/2);
-convert(flat,{tree,Tab}) ->
-    flat({tree,Tab});
-convert(tree,{flat,Tab}) ->
-    tree({flat,Tab});
-convert(_,{_,_}) ->
-    throw([]);
+
+access({_,Tab_t},Arg) ->
+    set:get({tree,Tab_t},Arg).
+access({_,Tab_t},Arg0,Arg1) ->
+    set:get({tree,set:get({tree,Tab_t},Arg0)},Arg1).
+
 flat({tree,Tree}) ->
     {flat,lists:reverse(flat_r(Tree,[]))}.
 flat_r([],Acc) ->
@@ -34,32 +33,22 @@ flat_r([H|T],Acc) ->
         flat(Sub,Acc) end(H),
     flat(T,Res).
 tree({flat,[]}) ->
-    {tree,[]};
+    {tree,{[],[]}};
 tree({flat,Flat}) ->
-    {tree,lists:reverse(tree_r(Flat))};
+    {Leaves,Nodes} = tree_r(Flat),
+    {tree,{Leaves,Nodes}};
 tree_r([H]) ->
-    {leaf,H};
-tree_r([H0,H1|T]) ->
-    Len = erlang:length([H0,H1|T]) div 2,
-    {L,R} = lists:split(Len,[H0,H1|T]),
-    {node,[tree(L),tree(R)]}.
-deept({flat,Flat}) ->
-    tree({flat,deept(Flat)});
-deept([{flat,Flat}|T]) ->
-    [deept({flat,Flat})|deept(T)];
-deept(Elem) ->
-    Elem.
-deepf({tree,Tree}) ->
-    {flat,Flat} = flat({tree,Tree}),
-    {flat,deepf(Flat)};
-deepf([{tree,Tree}|T]) ->
-    [deepf({tree,Tree})|deepf(T)];
-deepf(Elem) ->
-    Elem.
+    {[H],[]};
+tree_r([H0,H1]) ->
+    {[H0,H1],[]};
+tree_r([H0,H1,H2|T]) ->
+    Len = erlang:length([H0,H1,H2|T]) div 2,
+    {L,[M|R]} = lists:split(Len,[H0,H1,H2|T]),
+    {[M],[tree_r(L),tree_r(R)]}.
+
 list({flat,List}) ->
-    List;
-list({tree,List}) ->
     List.
+
 compare(L,R) ->
     Fun = fun(true) ->
         1; (false) ->
@@ -75,6 +64,7 @@ key(Elem) ->
 val(Elem) ->
     {_,Val} = Elem,
     Val.
+
 combine({flat,L},{flat,R},Lf,Mf,Rf) ->
     Fun = fun(L,R) -> compare(L,R) end,
     lists:reverse(combine_r(L,R,[],Lf,Mf,Rf,Fun)).
@@ -94,27 +84,39 @@ combine_r([Lh|Lt],[Rh|Rt],Acc,Lf,Mf,Rf,Comp) ->
         {Lt,Rt,Mf(Lh,Acc)}; (1) ->
         {L,Rt,Rf(Rh,Acc)} end(Comp(Lh,Rh)),
     combine_r(Lr,Rr,Res,Lf,Mf,Rf,Comp).
-find({tree,Tree},L,R,K,V) ->
-    Rev = try find_r(Tree,L,R,K,V,[]) of Val ->
-        Val catch Val ->
-        Val end,
-    {flat,lists:reverse(Rev)}.
-find_r([],_,_,_,_,Acc) ->
-    Acc;
-find_r([{node,Sub}|T],L,R,K,V,Acc) ->
-    Depth = find(Sub,L,R,K,V,Acc),
-    find(T,L,R,K,V,Depth);
-find_r([{leaf,Elem}|T],L,R,K,V,Acc) ->
-    Key = K(Elem),
+find({tree,{Leaves,Nodes}},L,R,K,V) ->
+    {flat,lists:reverse(find_r(Leaves,Nodes,L,R,K,V,[]))}.
+find_r([Leaf|Leaves],[{Leaves0,Nodes0},{Leaves1,Nodes1}|Nodes],L,R,K,V,Acc) ->
+    Key = K(Leaf),
     Left = L(Key),
     Right = R(Key),
-    Fun = fun(true) ->
-        throw(Acc); (false) ->
-        Val = V(Elem),
-        [Val|find(T,L,R,K,V,Acc)] end,
-    fun(true) ->
-        find(T,L,R,K,V,Acc); (false) ->
-        Fun(Right) end(Left).
+    fun(true,true) ->
+        throw([]);
+    (true,false) ->
+        find_r(Leaves,[{Leaves1,Nodes1}|Nodes],L,R,K,V,Acc);
+    (false,true) ->
+        find_r(Leaves0,Nodes0,L,R,K,V,Acc);
+    (false,false) ->
+        find_r(Leaves,[{Leaves1,Nodes1}|Nodes],L,R,K,V,V(Leaf)|find_r(Leaves0,Nodes0,L,R,K,V,Acc)]) end
+    (Left,Right);
+find_r([Leaf|Leaves],[],L,R,K,V,Acc) ->
+    Key = K(Leaf),
+    Left = L(Key),
+    Right = R(Key),
+    fun(true,true) ->
+        throw([]);
+    (true,false) ->
+        find_r(Leaves,[],L,R,K,V,Acc);
+    (false,true) ->
+        Acc;
+    (false,false) ->
+        find_r(Leaves,[],L,R,K,V,V(Leaf)|Acc) end
+    (Left,Right);
+find_r([],[{Leaves,Nodes}],L,R,K,V,Acc) ->
+    find_r(Leaves,Nodes,L,R,K,V,Acc);
+find_r([],[],_,_,_,_,Acc) ->
+    Acc.
+
 difference({flat,L},{flat,R}) ->
     Lf = fun(H,T) -> [H|T] end,
     Mf = fun(H,T) -> T end,
@@ -167,6 +169,7 @@ unionf_r([],Acc) ->
 unionf_r(Flat,Acc) ->
     [H|T] = Flat,
     unionf_r(T,union(H,Acc)).
+
 open({tree,Tree},L,R) ->
     open_r({tree,Tree},L,R,fun ident/1,fun ident/1).
 openk({tree,Tree},L,R) ->
@@ -251,6 +254,7 @@ uniquefyv_r([{K,V}|T],Acc,V) ->
     uniquefyv_r(T,Acc,V);
 uniquefyv_r([{K,V}|T],Acc,_) ->
     uniquefyv_r(T,[{K,V}|Acc],V).
+
 sort([]) ->
     {flat,[]};
 sort([H]) ->
@@ -260,6 +264,7 @@ sort([H|T]) ->
     {flat,union({flat,L},{flat,R})};
 sort(Elem) ->
     Elem.
+
 image({flat,Set_f},{tree,Map_t}) ->
     Fun = fun(Elem) ->
         closedv({tree,Map_t},Elem,Elem) end,
@@ -294,6 +299,7 @@ get(Map,Key) ->
         [Res] = Found,
         Res; (false) ->
         throw([]) end(length(Found).
+
 hole({flat,Flat}) ->
     hole_r(Flat,0).
 hole_r([],Elem) ->
@@ -327,6 +333,7 @@ count_r(Flat,Acc,Num) ->
     count_r(Diff,Map,Succ).
 counti({flat,Flat}) ->
     inverse(count({flat,Flat})).
+
 sets({flat,Flat}) ->
     Fun = fun(List) ->
         {flat,List} end,

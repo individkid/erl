@@ -1,6 +1,8 @@
 -module(vector).
+
 -export([times/2,over/2,plus/2,minus/2,transpose/3,versor/2,identity/1]).
 -export([extract/7,multiply/5,solve/3,intersect/3,construct/2]).
+
 times([Scalar],Vector) ->
     Fun = fun(Elem) ->
         Scalar*Elem end,
